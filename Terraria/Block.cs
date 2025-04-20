@@ -50,8 +50,7 @@ namespace Terraria
             Position = new(position.X * BlockSize, position.Y * BlockSize);
             Origin = new();
 
-            _highlightTexture = new(Game1.Instance.GraphicsDevice, 1, 1);
-            _highlightTexture.SetData([Color.White]);
+            
 
             Scale = 2f;
             //Debug.WriteLine(Position.ToString());

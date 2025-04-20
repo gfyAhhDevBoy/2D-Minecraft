@@ -8,19 +8,24 @@ namespace Terraria
     {
         public const int InitialWorldWidth = 50, InitialWorldHeight = 30;
 
-        private List<List<Block>> map;
+        private List<List<BlockType>> map;
+
+        private Texture2D _highlightTexture;
 
         public GameWorld()
         {
-            map = new List<List<Block>>(InitialWorldWidth);
+            map = new List<List<BlockType>>(InitialWorldWidth);
             for (int x = 0; x < InitialWorldWidth; x++)
             {
-                map.Add(new List<Block>(InitialWorldHeight));
+                map.Add(new List<BlockType>(InitialWorldHeight));
                 for (int y = 0; y < InitialWorldHeight; y++)
                 {
-                    map[x].Add(null);
+                    map[x].Add(BlockType.Air);
                 }
             }
+
+            _highlightTexture = new(Game1.Instance.GraphicsDevice, 1, 1);
+            _highlightTexture.SetData([Color.White]);
         }
 
         public Vector2 GetWorldSize() => new(map.Count, map[0].Count);
@@ -32,60 +37,65 @@ namespace Terraria
                 for (int x = 0; x < InitialWorldWidth; x++)
                 {
                     if (y < 10)
-                        map[x][y] = new Block(0, 0, new(x, y));
+                        map[x][y] = BlockType.Air;
                     else
-                        map[x][y] = new Block(BlockType.Stone, BlockFlags.Solid | BlockFlags.Breakable, new(x, y));
+                        map[x][y] = BlockType.Stone;
                 }
             }
 
-            map[20][9] = new Block(BlockType.Stone, BlockFlags.Solid | BlockFlags.Breakable, new(20, 9));
+            map[20][9] = BlockType.Stone;
         }
 
-        public void UpdateBlocks(GameTime gameTime)
+        public void Draw(GameTime gameTime, SpriteBatch spriteBatch, Point? selectedTile)
         {
             for (int y = 0; y < map[0].Count; y++)
             {
                 for (int x = 0; x < map.Count; x++)
                 {
-                    map[x][y].Update(gameTime);
+                    BlockType type = map[x][y];
+                    BlockDefinition def = Game1.Instance.BlockDefinitions[type];
+
+                    spriteBatch.Draw(def.Texture, new Rectangle(x* Block.BlockSize, y * Block.BlockSize, 32, 32), Color.White);
                 }
             }
-        }
 
-        public void Draw(GameTime gameTime, SpriteBatch spriteBatch)
-        {
-            for (int y = 0; y < map[0].Count; y++)
+            if(selectedTile.HasValue)
             {
-                for (int x = 0; x < map.Count; x++)
-                {
-                    map[x][y].Draw(gameTime, spriteBatch);
-                }
+                Point pos = selectedTile.Value;
+
+                Rectangle blockRect = new Rectangle(pos.X * Block.BlockSize, pos.Y * Block.BlockSize, 32, 32);
+
+                spriteBatch.Draw(_highlightTexture, blockRect, Color.White * .3f);
             }
         }
 
-        public Block GetBlock(int x, int y)
+        public BlockDefinition GetBlockDef(int x, int y)
         {
-            return map[x][y];
+            return Game1.Instance.BlockDefinitions[map[x][y]];
         }
 
-        public void DestroyBlock(Block block)
+        public void TryPlaceBlock(BlockType type, int x, int y)
+        {
+            if (map[x][y] == BlockType.Air)
+            {
+                map[x][y] = type;
+            }
+        }
+
+        public BlockType GetBlockType(int x, int y) => map[x][y];
+
+        public void DestroyBlock(int posX, int posY)
         {
             for (int y = 0; y < map.Count; y++)
             {
                 for (int x = 0; x < map[y].Count; x++)
                 {
-                    if (map[y][x] == block)
+                    if(posX == x && posY == y)
                     {
-                        map[y][x] = new Block(0, 0, new(x,y));
-                        break;
+                        map[x][y] = BlockType.Air;
                     }
                 }
             }
-        }
-
-        public void DestroyBlock(int x, int y)
-        {
-            DestroyBlock(map[x][y]);
         }
     }
 }

@@ -5,6 +5,7 @@ using System;
 using ImGuiNET;
 using Terraria.Util;
 using System.Diagnostics;
+using System.Reflection.Metadata;
 
 namespace Terraria
 {
@@ -15,6 +16,9 @@ namespace Terraria
 
         private Vector2 _velocity;
         private bool _frozen;
+
+        private Point? _selectedTile = null;
+        public Point? SelectedTile { get => _selectedTile;  }
 
         private KeyboardState _prevKb;
         private MouseState _prevMouse;
@@ -76,9 +80,9 @@ namespace Terraria
             {
                 for (int x = left; x <= right; x++)
                 {
-                    Block block = world.GetBlock(x, y);
+                    BlockDefinition block = world.GetBlockDef(x, y);
 
-                    if (!block.IsSolid()) continue;
+                    if (!block.IsSolid) continue;
 
                     float blockX = x * Block.BlockSize;
                     float blockY = y * Block.BlockSize;
@@ -112,9 +116,9 @@ namespace Terraria
             {
                 for (int x = left; x <= right; x++)
                 {
-                    Block block = world.GetBlock(x, y);
+                    BlockDefinition block = world.GetBlockDef(x, y);
 
-                    if (!block.IsSolid()) continue;
+                    if (!block.IsSolid) continue;
 
                     float blockX = x * Block.BlockSize;
                     float blockY = y * Block.BlockSize;
@@ -138,7 +142,7 @@ namespace Terraria
 
                 }
             }
-            if (kb.IsKeyDown(Keys.Space) && !_prevKb.IsKeyDown(Keys.Space))
+            if (kb.IsKeyDown(Keys.Space))
             {
                 if (IsGrounded(world))
                 {
@@ -147,38 +151,53 @@ namespace Terraria
             }
 
             Point mousePos = Mouse.GetState().Position;
-            Vector2 mouseWorldPos = Vector2.Transform(new Vector2(mousePos.X, mousePos.Y), Matrix.Invert(camera.GetViewMatrix()));
-            Rectangle mouseRect = new(new((int)mouseWorldPos.X,(int) mouseWorldPos.Y), new(1, 1));
+            Vector2 mouseWorldPos = Vector2.Transform(mousePos.ToVector2(), Matrix.Invert(camera.GetViewMatrix()));
+            Rectangle mouseRect = new Rectangle((int)mouseWorldPos.X, (int)mouseWorldPos.Y, 1, 1);
+            
+            // Get the tile coordinate the mouse is over
+            int tileX = (int)(mouseWorldPos.X / Block.BlockSize);
+            int tileY = (int)(mouseWorldPos.Y / Block.BlockSize);
 
-            for (int y = 0; y < world.GetWorldSize().Y; y++)
+            // Clamp
+            if (tileX < 0 || tileY < 0 || tileX >= world.GetWorldSize().X || tileY >= world.GetWorldSize().Y)
+                return;
+
+            // Get tile data
+            BlockType type = world.GetBlockType(tileX, tileY);
+            BlockDefinition def = Game1.Instance.BlockDefinitions[type];
+
+            // Only interact if it's not Air
+            if (type != BlockType.Air)
             {
-                for (int x = 0; x < world.GetWorldSize().X; x++)
+                Rectangle tileRect = new Rectangle(tileX * Block.BlockSize, tileY * Block.BlockSize, Block.BlockSize, Block.BlockSize);
+
+                if (mouseRect.Intersects(tileRect))
                 {
-                    Block block = world.GetBlock(x, y);
-                    if (block.Type != BlockType.Air)
+                    // If needed, store this tile as "selected"
+                    _selectedTile = new Point(tileX, tileY); // optional, if you want to draw a highlight
+
+                    if (mouse.LeftButton == ButtonState.Pressed && _prevMouse.LeftButton == ButtonState.Released)
                     {
-                        bool isMouseOver = mouseRect.Intersects(block.Rectangle);
-                        if(isMouseOver)
+                        Debug.WriteLine($"Destroy Block with Type: {type}");
+                        if (def.IsBreakable)
                         {
-                            block.SetSelected(isMouseOver);
-                            if(mouse.LeftButton == ButtonState.Pressed && _prevMouse.LeftButton == ButtonState.Released)
-                            {
-                                Debug.WriteLine("Destroy Block with Type: " + block.Type);
-                                if(block.IsBreakable())
-                                {
-                                    world.DestroyBlock(block);
-                                }
-                            }
-                        } else
-                        {
-                            block.SetSelected(isMouseOver);
+                            world.DestroyBlock(tileX, tileY);
                         }
                     }
+                } else
+                {
+                    _selectedTile = null;
+                }
+            } else
+            {
+                if(mouse.RightButton == ButtonState.Pressed && _prevMouse.RightButton == ButtonState.Released)
+                {
+                    world.TryPlaceBlock(BlockType.Stone, tileX, tileY);
                 }
             }
 
 
-            _prevKb = kb;
+                _prevKb = kb;
             _prevMouse = mouse;
             _previousSelectedBlock = _selectedBlock;
         }
@@ -211,9 +230,9 @@ namespace Terraria
 
             for (int x = left; x <= right; ++x)
             {
-                Block block = world.GetBlock(x, footTile);
+                BlockDefinition block = world.GetBlockDef(x, footTile);
 
-                if (block.IsSolid()) return true;
+                if (block.IsSolid) return true;
             }
 
             return false;

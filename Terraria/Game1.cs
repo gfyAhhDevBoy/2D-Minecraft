@@ -6,12 +6,15 @@ using System.Diagnostics;
 using Terraria.Util;
 using ImGuiNET;
 using MonoGame.ImGuiNet;
+using System.Collections.Generic;
 
 namespace Terraria
 {
     public class Game1 : Game
     {
         public static Game1 Instance;
+
+        public Dictionary<BlockType, BlockDefinition> BlockDefinitions;
 
         private GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
@@ -49,6 +52,9 @@ namespace Terraria
             ContentManager.Init(Content);
             _camera = new();
 
+            BlockDefinitions = new();
+
+
             GuiRenderer = new(this);
 
             _world = new();
@@ -59,12 +65,31 @@ namespace Terraria
             base.Initialize();
         }
 
+        private void LoadBlockDefinitions()
+        {
+            BlockDefinitions[BlockType.Air] = new BlockDefinition
+            {
+                Texture = GetTextureFromBlockType(BlockType.Air),
+                IsSolid = false,
+                IsBreakable = false,
+            };
+            BlockDefinitions[BlockType.Stone] = new BlockDefinition
+            {
+                Texture = GetTextureFromBlockType(BlockType.Stone),
+                IsSolid = true,
+                IsBreakable = true
+            };
+        }
+
         protected override void LoadContent()
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
 
             _blockMap = Content.Load<Texture2D>("blockmap");
             Debug.WriteLine(_blockMap.Width + "x" + _blockMap.Height);
+
+            LoadBlockDefinitions();
+
 
             _world.GenerateWorld();
 
@@ -79,7 +104,6 @@ namespace Terraria
                 Exit();
 
             _player.Update(gameTime, _world, _camera);
-            _world.UpdateBlocks(gameTime);
 
             _camera.SetCenter(_player.Position, ScreenWidth, ScreenHeight);
             
@@ -97,7 +121,7 @@ namespace Terraria
 
             _spriteBatch.Begin(samplerState: SamplerState.PointClamp, transformMatrix: _camera.GetViewMatrix());
 
-            _world.Draw(gameTime, _spriteBatch);
+            _world.Draw(gameTime, _spriteBatch, _player.SelectedTile);
 
             _player.Draw(gameTime, _spriteBatch);
 

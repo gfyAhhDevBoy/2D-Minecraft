@@ -70,7 +70,17 @@ namespace Terraria
 
         public void DestroyBlock(Block block)
         {
-        
+            for (int y = 0; y < map.Count; y++)
+            {
+                for (int x = 0; x < map[y].Count; x++)
+                {
+                    if (map[y][x] == block)
+                    {
+                        map[y][x] = new Block(0, 0, new(x,y));
+                        break;
+                    }
+                }
+            }
         }
 
         public void DestroyBlock(int x, int y)

@@ -20,7 +20,7 @@ namespace Terraria
                 blocks.Add(new List<BlockType>(ChunkHeight));
                 for(int y = 0; y < ChunkHeight; y++)
                 {
-                    blocks.Add
+                    blocks[x].Add(BlockType.Air);
                 }
             }
         }

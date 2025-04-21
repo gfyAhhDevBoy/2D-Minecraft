@@ -6,25 +6,32 @@ using ImGuiNET;
 using Terraria.Util;
 using System.Diagnostics;
 using System.Reflection.Metadata;
+using Terraria.Items;
 
 namespace Terraria
 {
+
     internal class Player : Sprite
     {
         private const float JumpForce = 435f;
-        private const float MoveSpeed = 200f;
+        private float _moveSpeed = 200f;
 
         private Vector2 _velocity;
         private bool _frozen;
 
         private Point? _selectedTile = null;
-        public Point? SelectedTile { get => _selectedTile;  }
+        public Point? SelectedTile { get => _selectedTile; }
+
+        public readonly Vector2 ItemOrigin;
 
         private KeyboardState _prevKb;
         private MouseState _prevMouse;
 
         private Block _selectedBlock;
         private Block _previousSelectedBlock;
+
+        Inventory _inventory;
+        public Inventory Inventory { get => _inventory; }
 
         public Player(Vector2 position) : base(ContentManager.GetTexture("player"))
         {
@@ -35,6 +42,52 @@ namespace Terraria
             _prevKb = Keyboard.GetState();
             _prevMouse = Mouse.GetState();
             _selectedBlock = null;
+            ItemOrigin = new(30, 24);
+
+            _inventory = new(9, this);
+
+            _inventory.AddItem(new TestSword(this), 1);
+            _inventory.AddItem(new BlockItem(this, BlockType.Stone));
+            _inventory.AddItem(new BlockItem(this, BlockType.Dirt));
+            _inventory.AddItem(new TestSword(this), 1);
+
+            InputManager.MouseScrollEvent += InputManager_MouseScrollEvent;
+            InputManager.KeyPressEvent += InputManager_KeyPressEvent;
+        }
+
+        private void InputManager_KeyPressEvent(object sender, KeboardEventArgs e)
+        {
+
+            switch (e.Key)
+            {
+                case Keys.Right:
+                    _inventory.NextSlot(); break;
+                case Keys.Left:
+                    _inventory.PreviousSlot(); break;
+
+                case Keys.D1:
+                case Keys.D2:
+                case Keys.D3:
+                case Keys.D4:
+                case Keys.D5:
+                case Keys.D6:
+                case Keys.D7:
+                case Keys.D8:
+                case Keys.D9:
+                    Debug.WriteLine(Int32.Parse(e.Key.ToString().Trim('D')) - 1);
+                    //break;
+                    _inventory.SelectedIndex = Int32.Parse(e.Key.ToString().Trim('D')) - 1; break;
+
+            }
+        }
+
+        private void InputManager_MouseScrollEvent(object sender, ScrollWheelEventArgs e)
+        {
+            if (e.Dir == ScrollWheelDirection.Up)
+            {
+                _inventory.NextSlot();
+            }
+            else if (e.Dir == ScrollWheelDirection.Down) { _inventory.PreviousSlot(); }
         }
 
         public override void Update(GameTime gameTime)
@@ -44,18 +97,18 @@ namespace Terraria
 
         public void Update(GameTime gameTime, GameWorld world, Camera camera)
         {
-            if (_frozen) return;
+            if (_frozen || !Game1.Instance.IsActive) return;
 
             KeyboardState kb = Keyboard.GetState();
             MouseState mouse = Mouse.GetState();
 
             if (Keyboard.GetState().IsKeyDown(Keys.D))
             {
-                _velocity.X = MoveSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds;
+                _velocity.X = _moveSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds;
             }
             if (Keyboard.GetState().IsKeyDown(Keys.A))
             {
-                _velocity.X = -MoveSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds;
+                _velocity.X = -_moveSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds;
             }
 
             if (!InputManager.IsAnyKeyPressed())
@@ -153,7 +206,7 @@ namespace Terraria
             Point mousePos = Mouse.GetState().Position;
             Vector2 mouseWorldPos = Vector2.Transform(mousePos.ToVector2(), Matrix.Invert(camera.GetViewMatrix()));
             Rectangle mouseRect = new Rectangle((int)mouseWorldPos.X, (int)mouseWorldPos.Y, 1, 1);
-            
+
             // Get the tile coordinate the mouse is over
             int tileX = (int)(mouseWorldPos.X / Block.BlockSize);
             int tileY = (int)(mouseWorldPos.Y / Block.BlockSize);
@@ -181,23 +234,40 @@ namespace Terraria
                         Debug.WriteLine($"Destroy Block with Type: {type}");
                         if (def.IsBreakable)
                         {
-                            world.DestroyBlock(tileX, tileY);
+                            BlockType block = world.DestroyBlock(tileX, tileY, this);
+                            if(block != BlockType.Air) 
+                            _inventory.AddItem(new BlockItem(this, block));
                         }
                     }
-                } else
+                }
+                else
                 {
                     _selectedTile = null;
                 }
-            } else
+            }
+            if (mouse.RightButton == ButtonState.Pressed && _prevMouse.RightButton == ButtonState.Released)
             {
-                if(mouse.RightButton == ButtonState.Pressed && _prevMouse.RightButton == ButtonState.Released)
+                if (_inventory.GetCurrentSlot().Item is BlockItem)
                 {
-                    world.TryPlaceBlock(BlockType.Stone, tileX, tileY);
+                    BlockItem blockitem = _inventory.GetCurrentSlot().Item as BlockItem;
+                    if(world.TryPlaceBlock(blockitem.BlockType, tileX, tileY))
+                        _inventory.RemoveItem(_inventory.GetCurrentSlot().Index, 1);
+                } else if(_inventory.GetCurrentSlot().Item is IInteractable)
+                {
+                    _inventory.GetCurrentSlot().Item.Interact(this);
+                }
+
+            }
+
+            foreach(var slot in _inventory.Slots)
+            {
+                if(mouseRect.Intersects(slot.Rectangle))
+                {
+                    Debug.WriteLine("Slot");
                 }
             }
 
-
-                _prevKb = kb;
+            _prevKb = kb;
             _prevMouse = mouse;
             _previousSelectedBlock = _selectedBlock;
         }
@@ -210,6 +280,7 @@ namespace Terraria
             ImGui.InputFloat("posX", ref _position.X);
             ImGui.InputFloat("posY", ref _position.Y);
             ImGui.Checkbox("Freeze", ref _frozen);
+            ImGui.InputFloat("speed", ref _moveSpeed);
 
             ImGui.End();
         }

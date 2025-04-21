@@ -37,6 +37,16 @@
 /processorParam:TextureFormat=Color
 /build:blockmapGrid.png
 
+#begin inventory.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/build:inventory.spritefont
+
+#begin Minecraft.ttf
+/copy:Minecraft.ttf
+
 #begin player.png
 /importer:TextureImporter
 /processor:TextureProcessor
@@ -48,4 +58,16 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:player.png
+
+#begin sword.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:sword.png
 

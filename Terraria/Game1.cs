@@ -33,6 +33,8 @@ namespace Terraria
 
         private Camera _camera;
 
+        private double fps;
+
         public Game1()
         {
             Instance = this;
@@ -50,9 +52,14 @@ namespace Terraria
             _graphics.ApplyChanges();
 
             ContentManager.Init(Content);
+            _blockMap = Content.Load<Texture2D>("blockmap");
+            Debug.WriteLine(_blockMap.Width + "x" + _blockMap.Height);
+            BlockDefinitions = new();
+
+            LoadBlockDefinitions();
+
             _camera = new();
 
-            BlockDefinitions = new();
 
 
             GuiRenderer = new(this);
@@ -60,7 +67,7 @@ namespace Terraria
             _world = new();
             
 
-            _player = new(new(50,50));
+            _player = new(new(GameWorld.InitialWorldWidth / 2,50));
 
             base.Initialize();
         }
@@ -70,6 +77,8 @@ namespace Terraria
             BlockDefinitions[BlockType.Air] = new BlockDefinition
             {
                 Texture = GetTextureFromBlockType(BlockType.Air),
+                InventoryTexture = GetTextureFromBlockType(BlockType.Air),
+                Name = "",
                 IsSolid = false,
                 IsBreakable = false,
             };
@@ -77,7 +86,25 @@ namespace Terraria
             {
                 Texture = GetTextureFromBlockType(BlockType.Stone),
                 IsSolid = true,
-                IsBreakable = true
+                IsBreakable = true,
+                InventoryTexture = GetTextureFromBlockType(BlockType.Stone),
+                Name = "Stone"
+            };
+            BlockDefinitions[BlockType.Dirt] = new BlockDefinition
+            {
+                Texture = GetTextureFromBlockType(BlockType.Dirt),
+                IsSolid = true,
+                IsBreakable = true,
+                InventoryTexture = GetTextureFromBlockType(BlockType.Dirt),
+                Name = "Dirt"
+            };
+            BlockDefinitions[BlockType.Grass] = new BlockDefinition
+            {
+                Texture = GetTextureFromBlockType(BlockType.Grass),
+                IsSolid = true,
+                IsBreakable = true,
+                InventoryTexture = GetTextureFromBlockType(BlockType.Grass),
+                Name = "Grass"
             };
         }
 
@@ -85,13 +112,8 @@ namespace Terraria
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
 
-            _blockMap = Content.Load<Texture2D>("blockmap");
-            Debug.WriteLine(_blockMap.Width + "x" + _blockMap.Height);
 
-            LoadBlockDefinitions();
-
-
-            _world.GenerateWorld();
+            _world.GenerateWorld(System.DateTime.Now.Millisecond);
 
             GuiRenderer.RebuildFontAtlas();
 
@@ -102,6 +124,9 @@ namespace Terraria
         {
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
+
+            if(IsActive)
+            InputManager.Update();
 
             _player.Update(gameTime, _world, _camera);
 
@@ -119,6 +144,7 @@ namespace Terraria
 
             GuiRenderer.BeginLayout(gameTime);
 
+            // World/Moving with camera
             _spriteBatch.Begin(samplerState: SamplerState.PointClamp, transformMatrix: _camera.GetViewMatrix());
 
             _world.Draw(gameTime, _spriteBatch, _player.SelectedTile);
@@ -127,7 +153,20 @@ namespace Terraria
 
             _spriteBatch.End();
 
-            
+
+            // UI/Not moving with world
+            _spriteBatch.Begin(samplerState: SamplerState.PointClamp);
+
+            _player.Inventory.Draw(_spriteBatch);
+
+            _spriteBatch.End();
+
+            ImGui.Begin("General");
+            ImGui.Text("fps: " + 1 / (float)gameTime.ElapsedGameTime.TotalSeconds);
+            ImGui.Text("frametime: " + gameTime.ElapsedGameTime);
+            ImGui.Text("totaltime: " + gameTime.TotalGameTime.TotalSeconds);
+            ImGui.InputFloat("zoom", ref _camera.Zoom);
+            ImGui.End();
 
             GuiRenderer.EndLayout();
 

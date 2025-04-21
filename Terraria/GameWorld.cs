@@ -17,7 +17,7 @@ namespace Terraria
    
     internal class GameWorld
     {
-        public const int InitialWorldWidth = 5000, InitialWorldHeight = 500;
+        public const int InitialWorldWidth = 1000, InitialWorldHeight = 300;
         float _terrainScale = 0.01f;
         float _caveThreshold = .3f;
 

@@ -67,7 +67,7 @@ namespace Terraria
             _world = new();
             
 
-            _player = new(new(GameWorld.InitialWorldWidth / 2,50));
+            _player = new(new(500,50));
 
             base.Initialize();
         }

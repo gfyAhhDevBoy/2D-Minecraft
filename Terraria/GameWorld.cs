@@ -17,7 +17,7 @@ namespace Terraria
    
     internal class GameWorld
     {
-        public const int InitialWorldWidth = 1000, InitialWorldHeight = 300;
+        public const int InitialWorldWidth = 700, InitialWorldHeight = 128;
         float _terrainScale = 0.01f;
         float _caveThreshold = .3f;
 
@@ -56,13 +56,13 @@ namespace Terraria
                 walkerModifier = random.NextDouble();
             } while(walkerModifier == 0);
 
-            for(int i = 0; i < seed * walkerModifier * 50; i++)
+            for(int i = 0; i < 100; i++)
             {
                 walkers.Add(new Walker
                 {
                     X = random.Next(InitialWorldWidth * Block.BlockSize),
                     Y = random.Next(InitialWorldHeight * Block.BlockSize),
-                    Life = 2000 + random.Next(500)
+                    Life = 200 + random.Next(50)
                 });
             }
 

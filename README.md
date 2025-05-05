@@ -1,4 +1,4 @@
-#(W.I.P.) Terraria
+# (W.I.P.) Terraria
 ## !! Stopped work on this project to focus on other technologies !!
 Very bad Terraria Clone made with C# Monogame. 
 

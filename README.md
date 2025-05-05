@@ -7,7 +7,7 @@ Very bad Terraria Clone made with C# Monogame.
 * Memory Efficient Random World Generation
 * Very bad performance
 * Block Placement and Breaking
-* Inventory Hotbat
+* Inventory Hotbar
 
 ### To-Do
 * Chunking

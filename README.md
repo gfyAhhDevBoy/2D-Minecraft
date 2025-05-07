@@ -1,5 +1,4 @@
 # (W.I.P.) 2D Minecraft
-## !! Stopped work on this project to focus on other technologies !!
 Very bad 2D Minecraft clone made with C# Monogame. 
 
 ### Features
